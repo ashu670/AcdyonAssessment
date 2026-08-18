@@ -61,19 +61,19 @@ export default function Header({
   ];
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-[4.5rem] py-2 flex items-center justify-between gap-2 sm:gap-4">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm w-full overflow-hidden">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 min-h-[4rem] sm:min-h-[4.5rem] py-2 flex items-center justify-between gap-1.5 sm:gap-4 w-full min-w-0">
         {/* Brand logo and title */}
-        <div className="flex items-center gap-3 sm:gap-6 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-6 shrink-0 min-w-0">
           <button
             onClick={handleLogoClick}
-            className="flex items-center gap-2 group text-left focus:outline-none"
+            className="flex items-center gap-1.5 sm:gap-2 group text-left focus:outline-none shrink-0"
             title="Return to top & reset filters"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-black text-white flex items-center justify-center font-black text-base sm:text-lg group-hover:scale-105 transition-transform shadow-md">
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-black text-white flex items-center justify-center font-black text-sm sm:text-lg group-hover:scale-105 transition-transform shadow-md shrink-0">
               ✕
             </div>
-            <span className="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900">
+            <span className="text-base sm:text-xl font-extrabold tracking-tight text-gray-900 truncate">
               JobPulse
             </span>
           </button>

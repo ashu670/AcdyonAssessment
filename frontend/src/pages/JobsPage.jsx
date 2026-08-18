@@ -133,8 +133,8 @@ export default function JobsPage() {
   const hasActiveFilters = filters.search || filters.company;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-between">
-      <div>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-between w-full overflow-x-hidden">
+      <div className="w-full min-w-0">
         {/* Header Navigation */}
         <Header
           onSearch={handleSearchSubmit}
@@ -150,8 +150,8 @@ export default function JobsPage() {
 
         {/* Active Sandbox Indicator Banner */}
         {sandboxActiveCount > 0 && (
-          <div className="bg-amber-950 text-amber-200 border-y border-amber-800 py-2.5 px-4 text-center text-xs font-semibold flex items-center justify-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          <div className="bg-amber-950 text-amber-200 border-y border-amber-800 py-2.5 px-3 text-center text-xs font-semibold flex items-center justify-center gap-2 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
             <span>DEMO SANDBOX ACTIVE: {sandboxActiveCount} simulated failure override{sandboxActiveCount > 1 ? 's' : ''} set.</span>
             <button
               onClick={() => setSandboxModalOpen(true)}
@@ -163,8 +163,8 @@ export default function JobsPage() {
         )}
 
         {/* Main Body Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
-          <div className="grid lg:grid-cols-12 gap-8 items-start">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-16 sm:pb-20 w-full min-w-0">
+          <div className="grid lg:grid-cols-12 gap-6 sm:gap-8 items-start w-full min-w-0">
             {/* Left Column */}
             <div className="lg:col-span-8 space-y-6">
               {/* Search Bar Input */}

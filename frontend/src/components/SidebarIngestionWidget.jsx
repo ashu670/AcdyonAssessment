@@ -63,20 +63,37 @@ export default function SidebarIngestionWidget({
 
             <div className="space-y-2">
               {sourceHealth.map((sh) => (
-                <div key={sh.sourceId} className="flex items-start justify-between text-xs py-1 border-b border-gray-200/40 last:border-0">
-                  <div>
-                    <span className="font-bold text-gray-900 block leading-snug">{sh.name}</span>
-                    <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1.5 mt-0.5">
-                      <span>Real: <strong className="text-gray-700">{sh.realStatus || sh.status}</strong></span>
+                <div
+                  key={sh.sourceId}
+                  className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 sm:gap-2 text-xs py-1.5 border-b border-gray-200/40 last:border-0 min-w-0"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="font-bold text-gray-900 block leading-snug truncate">
+                      {sh.name}
+                    </span>
+                    <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span>
+                        Real:{' '}
+                        <strong className="text-gray-700">
+                          {sh.realStatus || sh.status}
+                        </strong>
+                      </span>
                       <span>•</span>
-                      <span>Sim: <strong className="text-violet-600">{sh.simulationOverride || 'NONE'}</strong></span>
+                      <span>
+                        Sim:{' '}
+                        <strong className="text-violet-600">
+                          {sh.simulationOverride || 'NONE'}
+                        </strong>
+                      </span>
                     </div>
                   </div>
-                  <SourceHealthBadge
-                    status={sh.status}
-                    cooldownRemainingSec={sh.cooldownRemainingSec}
-                    simulationOverride={sh.simulationOverride}
-                  />
+                  <div className="shrink-0 pt-0.5 xs:pt-0">
+                    <SourceHealthBadge
+                      status={sh.status}
+                      cooldownRemainingSec={sh.cooldownRemainingSec}
+                      simulationOverride={sh.simulationOverride}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

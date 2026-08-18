@@ -65,7 +65,7 @@ export default function IngestionRunTable({ run }) {
   };
 
   return (
-    <div className="bg-gray-50/90 border border-gray-200 rounded-2xl overflow-hidden mt-4 space-y-3 p-4 text-gray-900">
+    <div className="bg-gray-50/90 border border-gray-200 rounded-2xl overflow-hidden mt-4 space-y-3 p-3 sm:p-4 text-gray-900 w-full max-w-full min-w-0">
       <div className="flex justify-between items-center flex-wrap gap-2 pb-2 border-b border-gray-200/80">
         <span className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">
           Ingestion Run Timeline & Metrics
