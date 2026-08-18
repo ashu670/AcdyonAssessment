@@ -1,6 +1,6 @@
-# JobPulse — Architecture & Ingestion Decisions
+# Acydon — Architecture & Ingestion Decisions
 
-This document outlines the core technical decisions, trade-offs, verification steps, and operational rules governing the JobPulse multi-source ingestion platform.
+This document outlines the core technical decisions, trade-offs, verification steps, and operational rules governing the Acydon multi-source ingestion platform.
 
 ---
 
@@ -8,7 +8,45 @@ This document outlines the core technical decisions, trade-offs, verification st
 
 The obvious alternative was browser-based scraping of restrictive job platforms. We rejected that for the live implementation because it adds brittle browser automation, CAPTCHA and fingerprinting concerns, higher operational cost, and a direct risk of violating platform access restrictions. The assignment also explicitly permits a low-risk public job source or a controlled sandbox.
 
-Instead, JobPulse uses source adapters for permitted public ATS/feed endpoints, with a common normalization layer and a resilient orchestrator. Requests are governed with pacing, per-source budgets, and bounded concurrency. A 429, timeout, schema failure, or restriction moves the source into the appropriate health/cooldown state and the orchestrator falls back to another eligible source. This gives us a real end-to-end ingestion pipeline while keeping the live demo within the assignment's scope guardrail.
+Instead, Acydon uses source adapters for permitted public ATS/feed endpoints, with a common normalization layer and a resilient orchestrator. Requests are governed with pacing, per-source budgets, and bounded concurrency. A 429, timeout, schema failure, or restriction moves the source into the appropriate health/cooldown state and the orchestrator falls back to another eligible source. This gives us a real end-to-end ingestion pipeline while keeping the live demo within the assignment's scope guardrail.
+
+### System Architecture Overview
+
+```mermaid
+flowchart LR
+    UI[Web UI] --> O[Ingestion Orchestrator]
+    O --> G[Request Governance]
+    G --> A[Source Adapters]
+
+    A --> GH[Greenhouse]
+    A --> L[Lever]
+    A --> AS[Ashby]
+    A --> AR[Arbeitnow]
+
+    A --> N[Normalize + Validate]
+    N --> DB[(PostgreSQL)]
+
+    O --> H[Health / Circuit Breaker]
+    H --> O
+```
+
+### Ingestion & Failover Flow
+
+```mermaid
+flowchart TD
+    PS[Primary Source] --> Q1{Request succeeds?}
+    Q1 -- Yes --> VN[Validate + Normalize]
+    Q1 -- 429 / Timeout / 5xx / Schema Error --> CB[Cooldown / Circuit Breaker]
+    
+    CB --> SEL[Select Next Eligible Source]
+    SEL --> FS[Fallback Source]
+    FS --> Q2{Request succeeds?}
+    
+    Q2 -- Yes --> VN
+    Q2 -- No --> SEL
+    
+    VN --> DB[Write to PostgreSQL]
+```
 
 ---
 
