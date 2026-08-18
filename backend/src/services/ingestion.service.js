@@ -87,7 +87,7 @@ export async function runGreenhouseIngestion() {
   return result;
 }
 
-// Upserts active listings and reconciles stale jobs inside an atomic transaction
+// Upserts active listings and reconciles stale jobs using optimized batching
 export async function reconcileSourceJobs(sourceId, normalisedJobs, isComplete = true) {
   let jobsInserted = 0;
   let jobsUpdated = 0;
@@ -107,72 +107,89 @@ export async function reconcileSourceJobs(sourceId, normalisedJobs, isComplete =
     );
   });
 
-  const fetchedExternalIds = new Set(validJobs.map((j) => j.externalId));
+  const fetchedExternalIds = new Set(validJobs.map((j) => String(j.externalId)));
 
-  // Atomic database upsert and stale-record deletion
-  await prisma.$transaction(async (tx) => {
-    // Upsert valid jobs based on content hash
-    for (const job of validJobs) {
-      const hashInput = [
-        job.title,
-        job.company,
-        job.location ?? '',
-        job.description ?? '',
-      ].join('|');
-      const contentHash = computeHash(hashInput);
+  // Fetch all existing jobs for this source in a single query
+  let existingJobs = [];
+  try {
+    existingJobs = await prisma.job.findMany({
+      where: { sourceId },
+      select: { id: true, externalId: true, contentHash: true },
+    });
+  } catch (err) {
+    logger.error({ err, sourceId }, 'Error fetching existing jobs for reconciliation');
+  }
 
-      const existing = await tx.job.findUnique({
-        where: {
-          sourceId_externalId: {
-            sourceId,
-            externalId: job.externalId,
-          },
-        },
-        select: { id: true, contentHash: true },
+  const existingMap = new Map(existingJobs.map((j) => [j.externalId, j]));
+
+  const toCreate = [];
+  const toUpdate = [];
+
+  for (const job of validJobs) {
+    const extId = String(job.externalId);
+    const hashInput = [
+      job.title || '',
+      job.company || '',
+      job.location ?? '',
+      job.description ?? '',
+    ].join('|');
+    const contentHash = computeHash(hashInput);
+
+    const existing = existingMap.get(extId);
+
+    if (!existing) {
+      toCreate.push({
+        sourceId,
+        externalId: extId,
+        title: job.title || 'Untitled Position',
+        company: job.company || 'Company',
+        location: job.location || null,
+        description: job.description || null,
+        url: job.url,
+        postedAt: job.postedAt ? new Date(job.postedAt) : null,
+        contentHash,
       });
+    } else if (existing.contentHash !== contentHash) {
+      toUpdate.push({
+        id: existing.id,
+        data: {
+          title: job.title || 'Untitled Position',
+          company: job.company || 'Company',
+          location: job.location || null,
+          description: job.description || null,
+          url: job.url,
+          postedAt: job.postedAt ? new Date(job.postedAt) : null,
+          contentHash,
+        },
+      });
+    } else {
+      jobsSkipped++;
+    }
+  }
 
-      if (!existing) {
-        await tx.job.create({
-          data: {
-            sourceId,
-            externalId: job.externalId,
-            title: job.title,
-            company: job.company,
-            location: job.location,
-            description: job.description,
-            url: job.url,
-            postedAt: job.postedAt,
-            contentHash,
-          },
+  const staleJobs = isComplete
+    ? existingJobs.filter((j) => !fetchedExternalIds.has(j.externalId))
+    : [];
+
+  // Execute database writes inside a transaction with 30s timeout
+  await prisma.$transaction(
+    async (tx) => {
+      if (toCreate.length > 0) {
+        const createResult = await tx.job.createMany({
+          data: toCreate,
+          skipDuplicates: true,
         });
-        jobsInserted++;
-      } else if (existing.contentHash !== contentHash) {
+        jobsInserted = createResult.count;
+      }
+
+      for (const item of toUpdate) {
         await tx.job.update({
-          where: { id: existing.id },
-          data: {
-            title: job.title,
-            company: job.company,
-            location: job.location,
-            description: job.description,
-            url: job.url,
-            postedAt: job.postedAt,
-            contentHash,
-          },
+          where: { id: item.id },
+          data: item.data,
         });
         jobsUpdated++;
-      } else {
-        jobsSkipped++;
       }
-    }
 
-    // Reconcile and purge stale source records if fetch was 100% complete
-    if (isComplete) {
-      const existingSourceJobs = await tx.job.findMany({
-        where: { sourceId },
-        select: { id: true, externalId: true },
-      });
-
-      const staleJobs = existingSourceJobs.filter((j) => !fetchedExternalIds.has(j.externalId));
       if (staleJobs.length > 0) {
         const staleIds = staleJobs.map((j) => j.id);
         const delRes = await tx.job.deleteMany({
@@ -181,16 +198,12 @@ export async function reconcileSourceJobs(sourceId, normalisedJobs, isComplete =
         jobsDeleted = delRes.count;
         logger.info(
           { sourceId, count: jobsDeleted },
-          'Reconciliation: Removed jobs no longer listed in latest complete source response'
+          'Reconciliation: Removed stale jobs no longer in current source payload'
         );
       }
-    } else {
-      logger.warn(
-        { sourceId },
-        'Reconciliation SKIPPED: Source fetch was marked incomplete or partial. Preserving existing DB jobs.'
-      );
-    }
-  });
+    },
+    { timeout: 30000 }
+  );
 
   return {
     jobsFetched: normalisedJobs.length,

@@ -28,27 +28,40 @@ class SandboxService {
 
   // Retrieves active override by source key
   getOverride(sourceType) {
+    if (!sourceType) return null;
     const key = String(sourceType).toLowerCase().trim();
+    let override = null;
     if (key === 'backup' || key === 'arbeitnow') {
-      return this.overrides.get('arbeitnow') || this.overrides.get('backup') || null;
+      override = this.overrides.get('arbeitnow') || this.overrides.get('backup') || null;
+    } else {
+      override = this.overrides.get(key) || null;
     }
-    return this.overrides.get(key) || null;
+
+    if (!override) return null;
+    const type = String(override.type || override.failureType || '').toLowerCase().trim();
+    if (!type || type === 'none' || type === 'healthy' || type === 'null' || type === 'undefined') {
+      return null;
+    }
+    return override;
   }
 
   // Exports map of active overrides
   getAllOverrides() {
     const result = {};
     for (const [key, value] of this.overrides.entries()) {
-      result[key] = value;
+      if (value) {
+        result[key] = value;
+      }
     }
     return result;
   }
 
   // Invoked inside source adapters to inject controlled synthetic errors
   simulateFailure(override, sourceName) {
-    const type = String(override.type || override.failureType || '').toLowerCase();
+    if (!override) return;
+    const type = String(override.type || override.failureType || '').toLowerCase().trim();
 
-    if (type === 'none') {
+    if (!type || type === 'none' || type === 'healthy' || type === 'null' || type === 'undefined') {
       return;
     }
 
@@ -122,6 +135,7 @@ class SandboxService {
       throw err;
     }
 
+    // Default simulation fallback for unspecified custom types
     const err = new Error(`${sourceName} encountered simulated event (${type})`);
     err.status = override.status || 500;
     throw err;

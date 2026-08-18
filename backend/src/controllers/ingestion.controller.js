@@ -8,15 +8,36 @@ import { circuitBreakerService } from '../services/circuit-breaker.service.js';
 import { logger } from '../config/logger.js';
 
 // POST /api/ingestion/run - Triggers multi-source ingestion run
-export async function triggerOrchestratedRun(_req, res, next) {
+export async function triggerOrchestratedRun(req, res, next) {
+  const requestId = req.headers['x-request-id'] || `req_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   try {
-    const result = await runOrchestratedIngestion();
+    const result = await runOrchestratedIngestion(requestId);
     return res.status(200).json(result);
   } catch (err) {
-    logger.error({ err }, 'Orchestrated ingestion run failed');
-    return res.status(500).json({
-      status: 'all_failed',
+    logger.error(
+      {
+        err,
+        message: err.message,
+        stack: err.stack,
+        requestId,
+        path: req.originalUrl,
+      },
+      'Unhandled exception during orchestrated ingestion run'
+    );
+    return res.status(200).json({
+      status: 'failed',
+      reason: 'ORCHESTRATION_ERROR',
       error: err.message,
+      attemptedSources: [],
+      summary: {
+        jobsFetched: 0,
+        jobsInserted: 0,
+        jobsUpdated: 0,
+        jobsSkipped: 0,
+        jobsDeleted: 0,
+        totalJobsStored: 0,
+      },
+      durationMs: 0,
       ranAt: new Date().toISOString(),
     });
   }

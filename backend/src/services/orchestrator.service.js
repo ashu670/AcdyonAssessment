@@ -42,37 +42,55 @@ const SOURCE_DEFINITIONS = [
 ];
 
 // Executes multi-source ingestion run with request governance, failover, and job reconciliation
-export async function runOrchestratedIngestion() {
+export async function runOrchestratedIngestion(requestId = `req_${Date.now()}`) {
   const startedAt = new Date();
-  logger.info('Starting resilient multi-source ingestion run with Request Governance');
+  logger.info({ requestId }, 'Starting resilient multi-source ingestion run with Request Governance');
 
   // Purge legacy fake jobs containing example.com URLs
-  await cleanUpFakeJobs();
+  try {
+    await cleanUpFakeJobs();
+  } catch (err) {
+    logger.warn({ err }, 'Fake jobs cleanup encountered error (non-fatal)');
+  }
 
   // Synchronize source entries in database
   const dbSourcesMap = new Map();
   for (const def of SOURCE_DEFINITIONS) {
-    const src = await prisma.source.upsert({
-      where: { name: def.name },
-      update: { enabled: true, baseUrl: def.baseUrl, type: def.type },
-      create: {
-        name: def.name,
-        type: def.type,
-        baseUrl: def.baseUrl,
-        enabled: true,
-      },
-    });
-    dbSourcesMap.set(def.name, src);
+    try {
+      const src = await prisma.source.upsert({
+        where: { name: def.name },
+        update: { enabled: true, baseUrl: def.baseUrl, type: def.type },
+        create: {
+          name: def.name,
+          type: def.type,
+          baseUrl: def.baseUrl,
+          enabled: true,
+        },
+      });
+      dbSourcesMap.set(def.name, src);
+    } catch (err) {
+      logger.error({ err, sourceName: def.name }, 'Source upsert failed during orchestration init');
+      const existing = await prisma.source.findFirst({ where: { type: def.type } });
+      if (existing) {
+        dbSourcesMap.set(def.name, existing);
+      }
+    }
   }
 
   // Create active run record
-  const runRecord = await prisma.ingestionRun.create({
-    data: {
-      startedAt,
-      status: 'running',
-    },
-  });
+  let runRecord = null;
+  try {
+    runRecord = await prisma.ingestionRun.create({
+      data: {
+        startedAt,
+        status: 'running',
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, 'Failed to create IngestionRun record');
+  }
 
+  const runRecordId = runRecord ? runRecord.id : null;
   const attemptedSources = [];
   let successfulSource = null;
   let successfulStats = { jobsFetched: 0, jobsInserted: 0, jobsUpdated: 0, jobsSkipped: 0, jobsDeleted: 0 };
@@ -82,26 +100,42 @@ export async function runOrchestratedIngestion() {
     const dbSource = dbSourcesMap.get(def.name);
     const sourceStartMs = Date.now();
 
+    if (!dbSource) {
+      logger.warn({ sourceName: def.name }, 'DB Source record missing; skipping source attempt');
+      continue;
+    }
+
     // Check circuit breaker and cooldown health
-    const canAttempt = await circuitBreakerService.canAttempt(dbSource.id, def.name);
+    let canAttempt = { allowed: true, status: 'HEALTHY' };
+    try {
+      canAttempt = await circuitBreakerService.canAttempt(dbSource.id, def.name);
+    } catch (err) {
+      logger.warn({ err, source: def.name }, 'Error checking circuit breaker state; defaulting to allowed');
+    }
 
     if (!canAttempt.allowed) {
       logger.warn(
-        { source: def.name, reason: canAttempt.reason, status: canAttempt.status },
+        { source: def.name, reason: canAttempt.reason, status: canAttempt.status, requestId },
         'Skipping source during health cooldown'
       );
 
       const statusKey = canAttempt.status === 'RATE_LIMITED' ? 'rate_limited' : 'circuit_open';
 
-      await prisma.ingestionRunSource.create({
-        data: {
-          runId: runRecord.id,
-          sourceId: dbSource.id,
-          status: statusKey,
-          error: canAttempt.reason,
-          durationMs: Date.now() - sourceStartMs,
-        },
-      });
+      if (runRecordId) {
+        try {
+          await prisma.ingestionRunSource.create({
+            data: {
+              runId: runRecordId,
+              sourceId: dbSource.id,
+              status: statusKey,
+              error: canAttempt.reason,
+              durationMs: Date.now() - sourceStartMs,
+            },
+          });
+        } catch {
+          // Ignored
+        }
+      }
 
       attemptedSources.push({
         source: def.type,
@@ -120,22 +154,34 @@ export async function runOrchestratedIngestion() {
     }
 
     // Check proactive rate budget and max concurrency limits
-    const governanceCheck = requestGovernanceService.canMakeRequest(def.type, def.name);
+    let governanceCheck = { allowed: true };
+    try {
+      governanceCheck = requestGovernanceService.canMakeRequest(def.type, def.name);
+    } catch {
+      // Ignored
+    }
+
     if (!governanceCheck.allowed) {
       logger.warn(
-        { source: def.name, reason: governanceCheck.reason },
+        { source: def.name, reason: governanceCheck.reason, requestId },
         'Skipping source: Request Governance budget exhausted or concurrency limit hit'
       );
 
-      await prisma.ingestionRunSource.create({
-        data: {
-          runId: runRecord.id,
-          sourceId: dbSource.id,
-          status: 'budget_exhausted',
-          error: `Request Governance: ${governanceCheck.reason}`,
-          durationMs: Date.now() - sourceStartMs,
-        },
-      });
+      if (runRecordId) {
+        try {
+          await prisma.ingestionRunSource.create({
+            data: {
+              runId: runRecordId,
+              sourceId: dbSource.id,
+              status: 'budget_exhausted',
+              error: `Request Governance: ${governanceCheck.reason}`,
+              durationMs: Date.now() - sourceStartMs,
+            },
+          });
+        } catch {
+          // Ignored
+        }
+      }
 
       attemptedSources.push({
         source: def.type,
@@ -163,7 +209,6 @@ export async function runOrchestratedIngestion() {
       const reqContext = requestGovernanceService.createRequestContext(def.type, session.sessionId, attempt);
 
       try {
-        // Enforce request interval delay and acquire concurrency lock
         await requestGovernanceService.acquireSlot(def.type, def.name);
 
         logger.info(
@@ -182,26 +227,36 @@ export async function runOrchestratedIngestion() {
         await circuitBreakerService.recordSuccess(dbSource.id, def.name);
 
         // Save attempt details
-        await prisma.ingestionRunSource.create({
-          data: {
-            runId: runRecord.id,
-            sourceId: dbSource.id,
-            status: 'success',
-            jobsFetched: stats.jobsFetched,
-            jobsInserted: stats.jobsInserted,
-            jobsUpdated: stats.jobsUpdated,
-            jobsSkipped: stats.jobsSkipped,
-            jobsDeleted: stats.jobsDeleted,
-            durationMs,
-          },
-        });
+        if (runRecordId) {
+          try {
+            await prisma.ingestionRunSource.create({
+              data: {
+                runId: runRecordId,
+                sourceId: dbSource.id,
+                status: 'success',
+                jobsFetched: stats.jobsFetched,
+                jobsInserted: stats.jobsInserted,
+                jobsUpdated: stats.jobsUpdated,
+                jobsSkipped: stats.jobsSkipped,
+                jobsDeleted: stats.jobsDeleted,
+                durationMs,
+              },
+            });
+          } catch {
+            // Ignored
+          }
+        }
 
         attemptedSources.push({
           source: def.type,
           name: def.name,
           status: 'success',
           requestId: reqContext.requestId,
-          ...stats,
+          jobsFetched: stats.jobsFetched,
+          jobsInserted: stats.jobsInserted,
+          jobsUpdated: stats.jobsUpdated,
+          jobsSkipped: stats.jobsSkipped,
+          jobsDeleted: stats.jobsDeleted,
           durationMs,
         });
 
@@ -224,13 +279,13 @@ export async function runOrchestratedIngestion() {
           httpStatus === 502 ||
           httpStatus === 503 ||
           httpStatus === 504 ||
-          err.message.includes('timed out') ||
+          (err.message && err.message.includes('timed out')) ||
           err.isNetworkError;
 
         if (isTransient && attempt <= MAX_RETRIES && !err.isCaptchaDetected && !err.isRestricted) {
           const delayMs = Math.pow(2, attempt) * 100;
           logger.warn(
-            { source: def.name, attempt, max: MAX_RETRIES, delayMs, error: err.message },
+            { source: def.name, attempt, max: MAX_RETRIES, delayMs, error: err.message, requestId },
             'Transient error encountered, retrying governed request...'
           );
           await new Promise((r) => setTimeout(r, delayMs));
@@ -292,31 +347,41 @@ export async function runOrchestratedIngestion() {
     }
 
     logger.error(
-      { source: def.name, error: lastError?.message, status: errorStatus, httpStatus },
-      'Source ingestion FAILED — proceeding to next fallback source (Existing DB jobs preserved)'
+      { source: def.name, error: lastError?.message, status: errorStatus, httpStatus, requestId },
+      'Source ingestion FAILED — proceeding to next fallback source'
     );
 
     // Record failure penalty in circuit breaker
-    await circuitBreakerService.recordFailure(dbSource.id, def.name, lastError, httpStatus);
+    try {
+      await circuitBreakerService.recordFailure(dbSource.id, def.name, lastError, httpStatus);
+    } catch {
+      // Ignored
+    }
 
     // Record attempt details
-    await prisma.ingestionRunSource.create({
-      data: {
-        runId: runRecord.id,
-        sourceId: dbSource.id,
-        status: errorStatus,
-        httpStatus,
-        error: lastError?.message || String(lastError),
-        durationMs,
-      },
-    });
+    if (runRecordId) {
+      try {
+        await prisma.ingestionRunSource.create({
+          data: {
+            runId: runRecordId,
+            sourceId: dbSource.id,
+            status: errorStatus,
+            httpStatus,
+            error: lastError?.message || String(lastError || 'Error'),
+            durationMs,
+          },
+        });
+      } catch {
+        // Ignored
+      }
+    }
 
     attemptedSources.push({
       source: def.type,
       name: def.name,
       status: errorStatus,
       httpStatus,
-      error: lastError?.message || String(lastError),
+      error: lastError?.message || String(lastError || 'Error'),
       jobsFetched: 0,
       jobsInserted: 0,
       jobsUpdated: 0,
@@ -328,18 +393,29 @@ export async function runOrchestratedIngestion() {
 
   // Save final execution outcome
   const finishedAt = new Date();
-  const totalJobsStored = await prisma.job.count();
+  let totalJobsStored = 0;
+  try {
+    totalJobsStored = await prisma.job.count();
+  } catch (err) {
+    logger.error({ err }, 'Error counting total stored jobs');
+  }
 
   if (successfulSource) {
-    await prisma.ingestionRun.update({
-      where: { id: runRecord.id },
-      data: {
-        finishedAt,
-        status: 'success',
-        finalSource: successfulSource,
-        totalJobs: successfulStats.jobsFetched,
-      },
-    });
+    if (runRecordId) {
+      try {
+        await prisma.ingestionRun.update({
+          where: { id: runRecordId },
+          data: {
+            finishedAt,
+            status: 'success',
+            finalSource: successfulSource,
+            totalJobs: successfulStats.jobsFetched,
+          },
+        });
+      } catch {
+        // Ignored
+      }
+    }
 
     return {
       status: 'success',
@@ -356,15 +432,21 @@ export async function runOrchestratedIngestion() {
       durationMs: finishedAt.getTime() - startedAt.getTime(),
     };
   } else {
-    await prisma.ingestionRun.update({
-      where: { id: runRecord.id },
-      data: {
-        finishedAt,
-        status: 'all_failed',
-        finalSource: null,
-        totalJobs: 0,
-      },
-    });
+    if (runRecordId) {
+      try {
+        await prisma.ingestionRun.update({
+          where: { id: runRecordId },
+          data: {
+            finishedAt,
+            status: 'all_failed',
+            finalSource: null,
+            totalJobs: 0,
+          },
+        });
+      } catch {
+        // Ignored
+      }
+    }
 
     return {
       status: 'failed',
