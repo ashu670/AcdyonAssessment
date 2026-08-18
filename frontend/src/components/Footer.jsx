@@ -19,9 +19,9 @@ export default function Footer({
   ];
 
   return (
-    <footer className="bg-[#0b0c10] text-white pt-16 pb-12 border-t border-gray-900">
+    <footer className="bg-[#0b0c10] text-white pt-10 sm:pt-16 pb-20 sm:pb-12 border-t border-gray-900 w-full max-w-full overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 lg:gap-12 pb-12 border-b border-gray-800/60">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12 pb-8 sm:pb-12 border-b border-gray-800/60">
           {/* Logo & Tagline */}
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center gap-2.5">
@@ -29,7 +29,7 @@ export default function Footer({
                 ✕
               </div>
               <span className="text-xl font-extrabold tracking-tight text-white">
-                JobPulse
+                Acydon
               </span>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed">
@@ -114,7 +114,7 @@ export default function Footer({
 
         {/* Bottom copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-4">
-          <p>© {new Date().getFullYear()} JobPulse Engineering. Resilient Multi-Source Ingestion System.</p>
+          <p>© {new Date().getFullYear()} Acydon Engineering. Resilient Multi-Source Ingestion System.</p>
           <div className="flex items-center gap-6 text-gray-400">
             <button onClick={onOpenPrivacy} className="hover:text-white transition">Privacy Policy</button>
             <button onClick={onOpenTerms} className="hover:text-white transition">Terms of Service</button>

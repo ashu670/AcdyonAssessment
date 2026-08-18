@@ -106,11 +106,8 @@ export default function SandboxPanel({ onOverrideChange, sourceHealth = [], onCl
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-extrabold text-gray-900 tracking-tight">
-                Failure & AntiBot Lab
+                Failure Simulation Sandbox
               </h3>
-              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-200 uppercase tracking-wider">
-                CONTROLLED TEST ENVIRONMENT
-              </span>
               {activeCount > 0 && (
                 <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
                   {activeCount} Override{activeCount > 1 ? 's' : ''} Active
@@ -118,7 +115,7 @@ export default function SandboxPanel({ onOverrideChange, sourceHealth = [], onCl
               )}
             </div>
             <p className="text-xs text-gray-500 mt-0.5 font-medium">
-              This environment simulates source behavior and detection signals. It does not bypass or interact with restricted commercial platforms.
+              Simulate source failures, rate limits, and timeouts. Select a source to configure failure simulation.
             </p>
           </div>
         </div>
@@ -144,17 +141,46 @@ export default function SandboxPanel({ onOverrideChange, sourceHealth = [], onCl
           const gov = governanceData[source.key] || {};
           const sess = sessionsData[source.key] || {};
 
+          let iconChar = 'S';
+          let avatarColor = 'bg-indigo-600';
+          let sourceLabel = source.name;
+
+          if (source.key === 'greenhouse') {
+            iconChar = 'S';
+            avatarColor = 'bg-indigo-600';
+            sourceLabel = 'Greenhouse (Stripe)';
+          } else if (source.key === 'lever') {
+            iconChar = 'S';
+            avatarColor = 'bg-emerald-600';
+            sourceLabel = 'Lever (Spotify)';
+          } else if (source.key === 'ashby') {
+            iconChar = 'L';
+            avatarColor = 'bg-violet-600';
+            sourceLabel = 'Ashby (Linear)';
+          } else if (source.key === 'arbeitnow') {
+            iconChar = 'A';
+            avatarColor = 'bg-rose-600';
+            sourceLabel = 'Arbeitnow';
+          }
+
           return (
             <div key={source.key} className="bg-gray-50/80 border border-gray-200/90 rounded-2xl p-4 space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-gray-200/60">
-                <span className="text-xs font-bold text-gray-900">{source.name}</span>
-                <span className="text-[10px] text-gray-400 font-mono">({source.defaultBoard})</span>
+                <div className="flex items-center gap-2">
+                  <div className={`w-6 h-6 rounded-lg ${avatarColor} text-white font-extrabold text-[10px] flex items-center justify-center`}>
+                    {iconChar}
+                  </div>
+                  <span className="text-xs font-bold text-gray-900">{sourceLabel}</span>
+                </div>
+                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </div>
 
               {/* Health Indicator */}
               <div className="space-y-1">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-                  Real DB Health
+                  Current Health
                 </span>
                 <SourceHealthBadge
                   status={healthRecord.status || 'HEALTHY'}
@@ -210,6 +236,56 @@ export default function SandboxPanel({ onOverrideChange, sourceHealth = [], onCl
             </div>
           );
         })}
+      </div>
+
+      {/* Quick Actions Panel */}
+      <div className="space-y-2 pt-2">
+        <span className="text-xs font-bold text-gray-900 tracking-tight block">
+          Quick Actions
+        </span>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <button
+            onClick={() => {
+              SOURCES.forEach((s) => handleSelectChange(s.key, '500'));
+            }}
+            className="p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-2xl text-center transition space-y-1"
+          >
+            <div className="text-gray-700 flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="text-xs font-bold text-gray-900 block">Pause All</span>
+            <span className="text-[10px] text-gray-500 block">Stop all sources</span>
+          </button>
+
+          <button
+            onClick={handleResetTestState}
+            className="p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-2xl text-center transition space-y-1"
+          >
+            <div className="text-gray-700 flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span className="text-xs font-bold text-gray-900 block">Resume All</span>
+            <span className="text-[10px] text-gray-500 block">Resume all sources</span>
+          </button>
+
+          <button
+            onClick={handleResetTestState}
+            className="p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-2xl text-center transition space-y-1"
+          >
+            <div className="text-gray-700 flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <span className="text-xs font-bold text-gray-900 block">Reset All</span>
+            <span className="text-[10px] text-gray-500 block">Clear all overrides</span>
+          </button>
+        </div>
       </div>
 
       {/* Detection Surface & Request Governance Telemetry Panel */}

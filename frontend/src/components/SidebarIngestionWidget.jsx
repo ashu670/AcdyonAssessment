@@ -26,7 +26,7 @@ export default function SidebarIngestionWidget({
   };
 
   return (
-    <div className="bg-gray-100/80 border border-gray-200/80 rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-5">
+    <div className="bg-gray-100/80 border border-gray-200/80 rounded-2xl p-3.5 sm:p-6 shadow-sm flex flex-col justify-between gap-5 w-full max-w-full min-w-0 overflow-hidden">
       <div>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-extrabold text-gray-900 tracking-tight">
@@ -61,41 +61,74 @@ export default function SidebarIngestionWidget({
               </button>
             </div>
 
-            <div className="space-y-2">
-              {sourceHealth.map((sh) => (
-                <div
-                  key={sh.sourceId}
-                  className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 sm:gap-2 text-xs py-1.5 border-b border-gray-200/40 last:border-0 min-w-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <span className="font-bold text-gray-900 block leading-snug truncate">
-                      {sh.name}
-                    </span>
-                    <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span>
-                        Real:{' '}
-                        <strong className="text-gray-700">
-                          {sh.realStatus || sh.status}
-                        </strong>
-                      </span>
-                      <span>•</span>
-                      <span>
-                        Sim:{' '}
-                        <strong className="text-violet-600">
-                          {sh.simulationOverride || 'NONE'}
-                        </strong>
-                      </span>
+            <div className="space-y-2.5">
+              {sourceHealth.map((sh) => {
+                const sName = sh.name || '';
+                let label = sName;
+                let colorClass = 'bg-black text-white';
+                let iconChar = sName.charAt(0).toUpperCase() || 'S';
+
+                if (sName.toLowerCase().includes('greenhouse')) {
+                  label = 'Greenhouse (Stripe)';
+                  colorClass = 'bg-indigo-600 text-white';
+                  iconChar = 'S';
+                } else if (sName.toLowerCase().includes('lever')) {
+                  label = 'Lever (Spotify)';
+                  colorClass = 'bg-emerald-600 text-white';
+                  iconChar = 'S';
+                } else if (sName.toLowerCase().includes('ashby')) {
+                  label = 'Ashby (Linear)';
+                  colorClass = 'bg-violet-600 text-white';
+                  iconChar = 'L';
+                } else if (sName.toLowerCase().includes('arbeitnow') || sName.toLowerCase().includes('backup')) {
+                  label = 'Arbeitnow';
+                  colorClass = 'bg-rose-600 text-white';
+                  iconChar = 'A';
+                }
+
+                return (
+                  <div
+                    key={sh.sourceId}
+                    className="flex items-center justify-between gap-1.5 text-xs p-2 sm:p-2.5 bg-white border border-gray-200/80 rounded-2xl shadow-2xs w-full min-w-0 overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl ${colorClass} font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs`}>
+                        {iconChar}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="font-bold text-gray-900 block leading-snug truncate">
+                          {label}
+                        </span>
+                        <div className="text-[9px] sm:text-[10px] text-gray-500 font-mono flex items-center gap-1 mt-0.5 truncate">
+                          <span>
+                            Real:{' '}
+                            <strong className="text-emerald-600 font-bold">
+                              {sh.realStatus || sh.status}
+                            </strong>
+                          </span>
+                          <span>•</span>
+                          <span>
+                            Sim:{' '}
+                            <strong className="text-violet-600">
+                              {sh.simulationOverride || 'NONE'}
+                            </strong>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <SourceHealthBadge
+                        status={sh.status}
+                        cooldownRemainingSec={sh.cooldownRemainingSec}
+                        simulationOverride={sh.simulationOverride}
+                      />
+                      <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </div>
-                  <div className="shrink-0 pt-0.5 xs:pt-0">
-                    <SourceHealthBadge
-                      status={sh.status}
-                      cooldownRemainingSec={sh.cooldownRemainingSec}
-                      simulationOverride={sh.simulationOverride}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

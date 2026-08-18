@@ -7,7 +7,7 @@ export default function ErrorState({ message, onRetry }) {
         </svg>
       </div>
       <h3 className="text-base font-extrabold text-gray-900 mb-1">Backend Connection Error</h3>
-      <p className="text-xs text-red-700 font-medium max-w-md bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-2 shadow-sm leading-relaxed">
+      <p className="text-xs text-red-700 font-medium max-w-md bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-2 shadow-sm leading-relaxed break-words break-all max-w-full min-w-0">
         {message || 'Failed to connect to the backend API server.'}
       </p>
       {onRetry && (

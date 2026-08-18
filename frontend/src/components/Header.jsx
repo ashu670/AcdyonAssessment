@@ -11,6 +11,7 @@ export default function Header({
 }) {
   const [headerSearch, setHeaderSearch] = useState('');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown menu on click outside or escape key
@@ -23,6 +24,7 @@ export default function Header({
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
         setCategoryDropdownOpen(false);
+        setMobileMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -39,6 +41,7 @@ export default function Header({
     if (onSearch) {
       onSearch(headerSearch);
     }
+    setMobileMenuOpen(false);
   }
 
   // Resets search and scrolls to top on logo click
@@ -49,6 +52,7 @@ export default function Header({
       onResetFilters();
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMobileMenuOpen(false);
   }
 
   const categories = [
@@ -62,19 +66,29 @@ export default function Header({
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm w-full overflow-hidden">
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 min-h-[4rem] sm:min-h-[4.5rem] py-2 flex items-center justify-between gap-1.5 sm:gap-4 w-full min-w-0">
-        {/* Brand logo and title */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-[3.75rem] sm:min-h-[4.5rem] py-2 flex items-center justify-between gap-2 w-full min-w-0">
+        {/* Left: Mobile Hamburger + Brand logo */}
         <div className="flex items-center gap-2 sm:gap-6 shrink-0 min-w-0">
           <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="sm:hidden p-1.5 text-gray-700 hover:text-black focus:outline-none"
+            aria-label="Toggle Menu"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <button
             onClick={handleLogoClick}
-            className="flex items-center gap-1.5 sm:gap-2 group text-left focus:outline-none shrink-0"
+            className="flex items-center gap-2 group text-left focus:outline-none shrink-0"
             title="Return to top & reset filters"
           >
             <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-black text-white flex items-center justify-center font-black text-sm sm:text-lg group-hover:scale-105 transition-transform shadow-md shrink-0">
               ✕
             </div>
-            <span className="text-base sm:text-xl font-extrabold tracking-tight text-gray-900 truncate">
-              JobPulse
+            <span className="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 truncate">
+              Acydon
             </span>
           </button>
 
@@ -96,28 +110,26 @@ export default function Header({
         </div>
 
         {/* Action navigation controls */}
-        <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {/* Active sandbox badge indicator */}
           {sandboxActiveCount > 0 && (
             <button
               onClick={onOpenSandboxModal}
-              className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded-full transition hover:bg-amber-200"
+              className="hidden xs:inline-flex items-center gap-1 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-amber-900 bg-amber-100 border border-amber-300 rounded-full transition hover:bg-amber-200"
               title="Click to manage Sandbox Overrides"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping" />
-              <span className="hidden sm:inline">Sandbox Active ({sandboxActiveCount})</span>
-              <span className="sm:hidden">Sandbox ({sandboxActiveCount})</span>
+              <span>Sandbox ({sandboxActiveCount})</span>
             </button>
           )}
 
           {/* Category dropdown menu */}
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative hidden sm:block" ref={dropdownRef}>
             <button
               onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-              className="flex items-center gap-1 px-2 sm:px-3 py-2 text-xs font-semibold text-gray-700 hover:text-black transition focus:outline-none"
+              className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-gray-700 hover:text-black transition focus:outline-none"
             >
-              <span className="hidden sm:inline">Browse by Category</span>
-              <span className="sm:hidden">Categories</span>
+              <span>Browse by Category</span>
               <svg className={`w-3.5 h-3.5 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -155,13 +167,64 @@ export default function Header({
           {/* Trigger ingestion action button */}
           <button
             onClick={onOpenIngestionModal}
-            className="inline-flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 bg-black hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95 whitespace-nowrap shrink-0"
+            className="inline-flex items-center justify-center px-4 sm:px-5 py-2 sm:py-2.5 bg-black hover:bg-gray-800 text-white text-xs font-extrabold rounded-xl sm:rounded-xl transition shadow-sm active:scale-95 whitespace-nowrap shrink-0"
           >
-            <span className="hidden sm:inline">Run Ingestion</span>
-            <span className="sm:hidden">Ingest</span>
+            <span>Ingest</span>
           </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden border-t border-gray-100 bg-white p-4 space-y-3 shadow-lg">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              value={headerSearch}
+              onChange={(e) => setHeaderSearch(e.target.value)}
+              placeholder="Search jobs…"
+              className="w-full bg-gray-100 border border-transparent rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-gray-900 focus:outline-none"
+            />
+          </form>
+
+          <div className="space-y-1 pt-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block px-1">
+              Browse Categories
+            </span>
+            <div className="grid grid-cols-2 gap-1.5 pt-1">
+              {categories.map((cat) => (
+                <button
+                  key={cat.label}
+                  onClick={() => {
+                    onCategorySelect(cat.value, cat.label);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition"
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col gap-2">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenSandboxModal();
+              }}
+              className="w-full py-2.5 px-3 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl text-center"
+            >
+              Failure Simulation Sandbox
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

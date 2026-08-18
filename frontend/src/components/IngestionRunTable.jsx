@@ -81,8 +81,40 @@ export default function IngestionRunTable({ run }) {
         )}
       </div>
 
-      {/* Attempts Sequence Table */}
-      <div className="overflow-x-auto">
+      {/* Mobile Attempts Cards (< md) */}
+      <div className="block md:hidden space-y-2.5">
+        {attempts.map((attempt, index) => (
+          <div
+            key={index}
+            className={`p-3 rounded-2xl border text-xs space-y-1.5 ${
+              attempt.status === 'success'
+                ? 'bg-emerald-50/60 border-emerald-200'
+                : 'bg-white border-gray-200'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-extrabold text-gray-900 capitalize">
+                {index + 1}. {attempt.name || attempt.source}
+              </span>
+              <div>{getStatusBadge(attempt.status, attempt.httpStatus)}</div>
+            </div>
+
+            {attempt.error && (
+              <p className="text-[10px] text-gray-500 font-mono break-all leading-tight">
+                {attempt.error}
+              </p>
+            )}
+
+            <div className="flex items-center justify-between text-[11px] font-mono text-gray-600 pt-1 border-t border-gray-100">
+              <span>Fetched: <strong className="text-gray-900 font-extrabold">{attempt.jobsFetched > 0 ? attempt.jobsFetched : 0}</strong></span>
+              <span>Duration: <strong className="text-gray-900 font-extrabold">{attempt.durationMs ? `${(attempt.durationMs / 1000).toFixed(2)}s` : '—'}</strong></span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Attempts Sequence Table (>= md) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left text-xs text-gray-800">
           <thead className="bg-gray-100/80 text-gray-500 uppercase tracking-wider text-[10px] border-b border-gray-200">
             <tr>

@@ -15,6 +15,7 @@ import Pagination from '../components/Pagination.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ErrorState from '../components/ErrorState.jsx';
+import BottomNav from '../components/BottomNav.jsx';
 import { fetchJobs, fetchSourceHealth, triggerOrchestratedRun, fetchSandboxOverrides } from '../services/api.js';
 
 const LIMIT = 10;
@@ -29,6 +30,7 @@ export default function JobsPage() {
   const [sourceHealth, setSourceHealth] = useState([]);
   const [sandboxActiveCount, setSandboxActiveCount] = useState(0);
   const [ingestionRunning, setIngestionRunning] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
 
   // Modals state
   const [selectedJob, setSelectedJob] = useState(null);
@@ -130,11 +132,29 @@ export default function JobsPage() {
     }
   }
 
+  function handleTabChange(tabId) {
+    setActiveTab(tabId);
+    if (tabId === 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tabId === 'sources') {
+      const widgetEl = document.getElementById('sidebar-ingestion-widget');
+      if (widgetEl) {
+        widgetEl.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 500, behavior: 'smooth' });
+      }
+    } else if (tabId === 'sandbox') {
+      setSandboxModalOpen(true);
+    } else if (tabId === 'settings') {
+      setArchDocsModalOpen(true);
+    }
+  }
+
   const hasActiveFilters = filters.search || filters.company;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-between w-full overflow-x-hidden">
-      <div className="w-full min-w-0">
+      <div className="w-full min-w-0 pb-16 sm:pb-0">
         {/* Header Navigation */}
         <Header
           onSearch={handleSearchSubmit}
@@ -235,7 +255,7 @@ export default function JobsPage() {
             </div>
 
             {/* Right Column */}
-            <div className="lg:col-span-4 space-y-6">
+            <div id="sidebar-ingestion-widget" className="lg:col-span-4 space-y-6">
               <SidebarIngestionWidget
                 onRunIngestion={handleQuickIngestionRun}
                 onOpenSandbox={() => setSandboxModalOpen(true)}
@@ -252,6 +272,9 @@ export default function JobsPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Bottom Navigation */}
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Footer */}
       <Footer
