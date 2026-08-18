@@ -94,7 +94,7 @@ export default function SandboxPanel({ onOverrideChange, sourceHealth = [], onCl
   const activeCount = Object.keys(activeOverrides).length;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-2xl text-gray-900 space-y-6">
+    <div className="bg-white border border-gray-200 rounded-3xl p-4 sm:p-6 shadow-2xl text-gray-900 space-y-5 sm:space-y-6">
       {/* Header Banner */}
       <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
         <div className="flex items-center gap-3">

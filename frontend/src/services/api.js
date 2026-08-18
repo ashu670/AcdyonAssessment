@@ -1,15 +1,36 @@
 // Base API client configuration
-const BASE_URL = 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// Shared fetch wrapper with error handling
+// Shared fetch wrapper with enhanced error handling
 async function apiFetch(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, options);
-  const data = await res.json();
-  if (!res.ok) {
-    const message = data?.error?.message || `HTTP ${res.status}`;
-    throw new Error(message);
+  try {
+    const res = await fetch(`${API_URL}${path}`, options);
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    if (!res.ok) {
+      const message =
+        data?.error?.message || `API returned HTTP ${res.status}`;
+      const error = new Error(message);
+      error.status = res.status;
+      throw error;
+    }
+    return data;
+  } catch (err) {
+    if (err.status) {
+      throw err;
+    }
+    if (err.name === 'TypeError' || err.message?.includes('fetch')) {
+      throw new Error(
+        `Unable to reach API at ${API_URL}. Check backend status, VITE_API_URL environment variable, or CORS configuration.`
+      );
+    }
+    throw err;
   }
-  return data;
 }
 
 // Fetches job listings with page, search, and company filters

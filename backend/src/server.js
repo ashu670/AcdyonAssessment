@@ -15,10 +15,10 @@ async function main() {
     process.exit(1);
   }
 
-  const server = app.listen(config.port, () => {
+  const server = app.listen(config.port, '0.0.0.0', () => {
     logger.info(
       { port: config.port, env: config.nodeEnv },
-      `JobPulse backend listening`
+      `JobPulse backend listening on 0.0.0.0:${config.port}`
     );
   });
 

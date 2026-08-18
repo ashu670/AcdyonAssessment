@@ -175,3 +175,29 @@ curl -X POST http://localhost:3001/api/ingestion/run
 - Trigger 3 failures on a source.
 - Observe status changing to `CIRCUIT_OPEN`.
 - Next run skips the source instantly without making outbound HTTP calls until the 60-second cooldown expires.
+
+---
+
+## Production Deployment (Vercel + Render)
+
+### Frontend (Vercel)
+- **Framework**: Vite
+- **Root Directory**: `frontend`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Environment Variable**:
+  ```env
+  VITE_API_URL=https://<render-backend-url>.onrender.com
+  ```
+
+### Backend (Render)
+- **Framework**: Node.js / Express
+- **Root Directory**: `backend`
+- **Environment Variable**:
+  ```env
+  FRONTEND_ORIGIN=https://<vercel-frontend-url>.vercel.app
+  ```
+
+### Database
+- **Provider**: Render PostgreSQL
+

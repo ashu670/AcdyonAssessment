@@ -15,24 +15,37 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// CORS configuration for local development origins
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  config.frontendOrigin
-].filter(Boolean);
+// CORS configuration for local development and production Vercel origins
+const rawOrigins = (config.frontendOrigin || '')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+const allowedOrigins = Array.from(
+  new Set([
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    ...rawOrigins,
+  ])
+);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, '');
+      if (allowedOrigins.includes(cleanOrigin) || allowedOrigins.includes('*')) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        // Refuse CORS without throwing exception that breaks Express error pipeline
+        callback(null, false);
       }
     },
-    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type'],
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
   })
 );
 
@@ -41,7 +54,11 @@ app.use(express.json({ limit: '1mb' }));
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: 'ok',
+    service: 'acydon-assessment',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // API routes
