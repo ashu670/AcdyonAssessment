@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Represents an external job source (e.g. Greenhouse, Lever).
+/// Stores the connection details and enabled status.
+model Source {
+  id        String   @id @default(cuid())
+  name      String   @unique           // Human-readable: "Greenhouse"
+  type      String                     // Machine key: "greenhouse"
+  baseUrl   String                     // API base URL
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs   Job[]
+  health SourceHealth?
+  runs   IngestionRunSource[]
+}
+
+/// Represents an orchestrated ingestion run execution.
+model IngestionRun {
+  id          String               @id @default(cuid())
+  startedAt   DateTime
+  finishedAt  DateTime?
+  status      String               // "success" | "partial" | "all_failed"
+  finalSource String?              // Name of the source that successfully ingested
+  totalJobs   Int                  @default(0)
+  createdAt   DateTime             @default(now())
+
+  sources     IngestionRunSource[]
+}
+
+/// Per-source outcome details within an IngestionRun.
+model IngestionRunSource {
+  id           String       @id @default(cuid())
+  runId        String
+  sourceId     String
+  status       String       // "success" | "timeout" | "network_error" | "http_error" | "schema_error" | "circuit_open" | "skipped"
+  httpStatus   Int?
+  jobsFetched  Int          @default(0)
+  jobsInserted Int          @default(0)
+  jobsUpdated  Int          @default(0)
+  jobsSkipped  Int          @default(0)
+  jobsDeleted  Int          @default(0)
+  error        String?
+  durationMs   Int?
+  attemptedAt  DateTime     @default(now())
+
+  run    IngestionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  source Source       @relation(fields: [sourceId], references: [id])
+
+  @@index([runId])
+  @@index([sourceId])
+}
+
+/// Tracks the operational health and circuit breaker state of a Source.
+model SourceHealth {
+  id                  String    @id @default(cuid())
+  sourceId            String    @unique
+  status              String    @default("HEALTHY") // "HEALTHY" | "DEGRADED" | "RATE_LIMITED" | "UNAVAILABLE" | "SCHEMA_ERROR" | "CIRCUIT_OPEN" | "DISABLED"
+  circuitState        String    @default("CLOSED")  // "CLOSED" | "OPEN" | "HALF_OPEN"
+  consecutiveFailures Int       @default(0)
+  totalFailures       Int       @default(0)
+  totalSuccesses      Int       @default(0)
+  failureCount        Int       @default(0)         // alias for backward compatibility
+  lastSuccessAt       DateTime?
+  lastFailureAt       DateTime?
+  lastError           String?
+  cooldownUntil       DateTime?
+  updatedAt           DateTime  @updatedAt
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+}
+
+/// Represents a normalised job listing ingested from a Source.
+model Job {
+  id          String   @id @default(cuid())
+  sourceId    String
+  externalId  String                   // The ID assigned by the external source
+  title       String
+  company     String
+  location    String?
+  description String?                  // Full HTML job description
+  url         String                   // Absolute URL to the original listing
+  postedAt    DateTime?                // When the job was first published externally
+  contentHash String                   // SHA-256 of key fields; used to detect changes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  source Source @relation(fields: [sourceId], references: [id])
+
+  // A job is globally unique by the combination of source + external ID.
+  // This is the primary deduplication key.
+  @@unique([sourceId, externalId])
+
+  // Indexes for the common query patterns used by the jobs API.
+  @@index([title])
+  @@index([company])
+  @@index([location])
+  @@index([postedAt])
+  @@index([sourceId])
+}

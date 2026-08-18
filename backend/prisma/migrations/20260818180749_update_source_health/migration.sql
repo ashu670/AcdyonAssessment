@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "SourceHealth" ADD COLUMN     "circuitState" TEXT NOT NULL DEFAULT 'CLOSED',
+ADD COLUMN     "consecutiveFailures" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "totalFailures" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "totalSuccesses" INTEGER NOT NULL DEFAULT 0;
