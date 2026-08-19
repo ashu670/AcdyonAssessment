@@ -10,27 +10,17 @@ export default function Header({
   sandboxActiveCount = 0,
 }) {
   const [headerSearch, setHeaderSearch] = useState('');
-  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const dropdownRef = useRef(null);
 
-  // Close dropdown menu on click outside or escape key
+  // Close mobile drawer on escape key
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setCategoryDropdownOpen(false);
-      }
-    }
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
-        setCategoryDropdownOpen(false);
         setMobileMenuOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
@@ -54,15 +44,6 @@ export default function Header({
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setMobileMenuOpen(false);
   }
-
-  const categories = [
-    { label: 'All Jobs', value: '' },
-    { label: 'Engineering', value: 'Engineer' },
-    { label: 'Design & UX', value: 'Design' },
-    { label: 'Product', value: 'Product' },
-    { label: 'Marketing', value: 'Marketing' },
-    { label: 'Sales & GTM', value: 'Sales' },
-  ];
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm w-full overflow-hidden">
@@ -123,36 +104,6 @@ export default function Header({
             </button>
           )}
 
-          {/* Category dropdown menu */}
-          <div className="relative hidden sm:block" ref={dropdownRef}>
-            <button
-              onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-              className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-gray-700 hover:text-black transition focus:outline-none"
-            >
-              <span>Browse by Category</span>
-              <svg className={`w-3.5 h-3.5 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {categoryDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in duration-150">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.label}
-                    onClick={() => {
-                      onCategorySelect(cat.value, cat.label);
-                      setCategoryDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-black transition"
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* AntiBot Sandbox modal button */}
           <button
             onClick={onOpenSandboxModal}
@@ -191,26 +142,6 @@ export default function Header({
               className="w-full bg-gray-100 border border-transparent rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-gray-900 focus:outline-none"
             />
           </form>
-
-          <div className="space-y-1 pt-1">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block px-1">
-              Browse Categories
-            </span>
-            <div className="grid grid-cols-2 gap-1.5 pt-1">
-              {categories.map((cat) => (
-                <button
-                  key={cat.label}
-                  onClick={() => {
-                    onCategorySelect(cat.value, cat.label);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="text-left px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition"
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="pt-2 flex flex-col gap-2">
             <button
