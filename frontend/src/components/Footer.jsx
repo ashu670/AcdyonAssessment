@@ -29,7 +29,7 @@ export default function Footer({
                 ✕
               </div>
               <span className="text-xl font-extrabold tracking-tight text-white">
-                Acydon
+                Acdyon
               </span>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed">
@@ -114,7 +114,7 @@ export default function Footer({
 
         {/* Bottom copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-4">
-          <p>© {new Date().getFullYear()} Acydon Engineering. Resilient Multi-Source Ingestion System.</p>
+          <p>© {new Date().getFullYear()} Acdyon Engineering Assessment. Resilient Multi-Source Ingestion System.</p>
           <div className="flex items-center gap-6 text-gray-400">
             <button onClick={onOpenPrivacy} className="hover:text-white transition">Privacy Policy</button>
             <button onClick={onOpenTerms} className="hover:text-white transition">Terms of Service</button>

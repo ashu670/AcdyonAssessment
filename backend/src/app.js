@@ -56,7 +56,7 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'ok',
-    service: 'acydon-assessment',
+    service: 'acdyon-assessment',
     timestamp: new Date().toISOString(),
   });
 });

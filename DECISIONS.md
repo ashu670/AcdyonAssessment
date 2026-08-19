@@ -1,6 +1,6 @@
-# Acydon — Architecture & Ingestion Decisions
+# Acdyon — Architecture & Ingestion Decisions
 
-This document outlines the core technical decisions, trade-offs, verification steps, and operational rules governing the Acydon multi-source ingestion platform.
+This document outlines the core technical decisions, trade-offs, verification steps, and operational rules governing the Acdyon multi-source ingestion platform.
 
 ---
 
@@ -8,7 +8,7 @@ This document outlines the core technical decisions, trade-offs, verification st
 
 The obvious alternative was browser-based scraping of restrictive job platforms. We rejected that for the live implementation because it adds brittle browser automation, CAPTCHA and fingerprinting concerns, higher operational cost, and a direct risk of violating platform access restrictions. The assignment also explicitly permits a low-risk public job source or a controlled sandbox.
 
-Instead, Acydon uses source adapters for permitted public ATS/feed endpoints, with a common normalization layer and a resilient orchestrator. Requests are governed with pacing, per-source budgets, and bounded concurrency. A 429, timeout, schema failure, or restriction moves the source into the appropriate health/cooldown state and the orchestrator falls back to another eligible source. This gives us a real end-to-end ingestion pipeline while keeping the live demo within the assignment's scope guardrail.
+Instead, Acdyon uses source adapters for permitted public ATS/feed endpoints, with a common normalization layer and a resilient orchestrator. Requests are governed with pacing, per-source budgets, and bounded concurrency. A 429, timeout, schema failure, or restriction moves the source into the appropriate health/cooldown state and the orchestrator falls back to another eligible source. This gives us a real end-to-end ingestion pipeline while keeping the live demo within the assignment's scope guardrail.
 
 ### System Architecture Overview
 

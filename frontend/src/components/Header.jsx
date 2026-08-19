@@ -88,7 +88,7 @@ export default function Header({
               ✕
             </div>
             <span className="text-lg sm:text-xl font-extrabold tracking-tight text-gray-900 truncate">
-              Acydon
+              Acdyon
             </span>
           </button>
 
