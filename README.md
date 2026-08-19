@@ -10,7 +10,7 @@ A resilient multi-source job ingestion engine. Ingests live job postings directl
 
 ```
                                ┌────────────────────────────────────────────────────────┐
-                               │                    JobPulse Core                       │
+                               │                AcdyonAssessment Core                 │
                                └───────────────────────────┬────────────────────────────┘
                                                            │
                                                 ┌──────────▼───────────┐
@@ -84,7 +84,7 @@ A resilient multi-source job ingestion engine. Ingests live job postings directl
 ### 1. Configure Environment Variables
 Edit `backend/.env`:
 ```env
-DATABASE_URL="postgresql://postgres:Password123@localhost:5432/jobpulse"
+DATABASE_URL="postgresql://postgres:Password123@localhost:5432/AcdyonAssessment"
 PORT=3001
 GREENHOUSE_BOARD_TOKEN=stripe
 LEVER_BOARD_TOKEN=spotify
