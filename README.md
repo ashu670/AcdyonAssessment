@@ -1,4 +1,4 @@
-# JobPulse — Resilient Multi-Source Job Ingestion System
+# AcdyonAssessment — Resilient Multi-Source Job Ingestion System
 
 A resilient multi-source job ingestion engine. Ingests live job postings directly from public ATS endpoints (**Greenhouse**, **Lever**, **Ashby**), normalizes them into a common schema, handles failures gracefully with circuit breakers, and provides an interactive failure simulation sandbox and dashboard.
 
